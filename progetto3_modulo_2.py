@@ -1,7 +1,9 @@
-# Parte 1 - Pulizia dati
-
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
+from matplotlib.widgets import Slider
+
+# Parte 1 - Pulizia dati
 
 df = pd.DataFrame({
     "Order Date":['2025-09-30','2025-10-31','2025-11-30','2025-12-31','2026-01-31',
@@ -26,3 +28,52 @@ df.drop_duplicates()
 
 df["Year"]=df['Order Date'].dt.year
 df=df.set_index("Year")
+
+print(df)
+
+# Parte 2 - Analisi Esplorativa (EDA)
+
+df_anno = df.groupby('Year')[['Sales', 'Profit']].sum()
+
+fig, ax = plt.subplots(figsize=(10,6))
+plt.subplots_adjust(bottom=0.25)
+
+width = 0.35
+x = np.arange(len(df_anno.index))
+bar1 = ax.bar(x - width/2, df_anno['Sales'], width, label='Vendite')
+bar2 = ax.bar(x + width/2, df_anno['Profit'], width, label='Profitto')
+ax.set_xticks(x)
+ax.set_xticklabels(df_anno.index)
+ax.set_xlabel('Anno')
+ax.set_ylabel('Valore')
+ax.set_title('Vendite e Profitto per Anno')
+ax.legend()
+
+df_sotto_categorie=df.groupby("Sub-Category")["Quantity"].sum().reset_index().sort_values("Quantity",ascending=False).set_index("Quantity")
+
+print(f"le 5 sotto-categorie più vendute:\n{df_sotto_categorie.head()}")
+
+ax_slider = plt.axes([0.25, 0.1, 0.65, 0.03])
+slider = Slider(ax_slider, 'Sotto-Categoria', 0, len(df_sotto_categorie) - 1, valinit=0, valstep=1)
+
+def update(val):
+    idx = int(slider.val)
+    sotto_categoria = df_sotto_categorie.iloc[idx]['Sub-Category']
+    df_filtra = df[df['Sub-Category'] == sotto_categoria]
+    df_anno = df_filtra.groupby('Year')[['Sales', 'Profit']].sum()
+    ax.clear()
+    width = 0.35
+    x = np.arange(len(df_anno.index))
+    ax.bar(x - width/2, df_anno['Sales'], width, label='Vendite')
+    ax.bar(x + width/2, df_anno['Profit'], width, label='Profitto')
+    ax.set_xticks(x)
+    ax.set_xticklabels(df_anno.index)
+    ax.set_xlabel('Anno')
+    ax.set_ylabel('Valore')
+    ax.set_title(f'Vendite e Profitto per Anno - {sotto_categoria}')
+    ax.legend()
+    fig.canvas.draw_idle()
+
+slider.on_changed(update)
+
+plt.show()
